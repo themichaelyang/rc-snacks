@@ -17,9 +17,38 @@ window.onload = () => {
   let center = [0, 0]
   let radius = 10
 
-  wiggleLine([100, 100], -Math.PI / 4, [25, 10, 8, 5, 3, 2], ctx)
+  arcWalk([100, 100], -Math.PI / 4, [25, 10, 8, 5, 3, 2], ctx)
 }
 
+// start = starting point *on* a circle
+// startAngle = angle from starting point to first center
+function arcWalk(start, startAngle, radii, ctx) {
+  let [x, y] = start
+  let [cx, cy] = moveInDirection(start, radii[0], startAngle)
+  let turn = Math.random() * Math.PI
+
+  for (let i = 0; i < radii.length; i++) {
+    ctx.beginPath()
+    ctx.lineWidth = 0
+    ctx.fillStyle = 'red'
+    ctx.arc(cx, cy, 1, 0, 2 * Math.PI)
+    ctx.fill()
+
+    ctx.beginPath()
+    let arcStart = cartesianToPolar([x, y], [cx, cy])
+
+    ;[x, y] = moveInDirection([cx, cy], radii[i], turn)
+    let arcEnd = cartesianToPolar([x, y], [cx, cy])
+
+    turn = Math.random() * Math.PI
+    ctx.arc(cx, cy, radii[i], arcStart[1], arcEnd[1])
+    ;[cx, cy] = moveInDirection([x, y], radii[i + 1], startAngle)
+
+    ctx.stroke()
+  }
+}
+
+// start = starting center point
 function wiggleLine(start, angle, radii, ctx) {
   let [x, y] = start
   for (let i = 0; i < radii.length; i++) {
@@ -51,4 +80,8 @@ function cartesianToPolar(coord, origin=[0, 0]) {
   
   // atan can only handle top right quadrant, so need to adjust with atan2
   return [Math.sqrt(x*x + y*y), Math.atan2(y, x)]
+}
+
+function moveInDirection(start, length, angle) {
+  return [start[0] + length * Math.sin(angle), start[1] + length * Math.cos(angle)]
 }

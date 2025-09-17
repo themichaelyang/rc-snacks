@@ -17,14 +17,17 @@ window.onload = () => {
   let center = [0, 0]
   let radius = 10
 
-  circleChain([100, 100], -Math.PI / 4, [25, 10, 5, 3, 2], ctx)
+  wiggleChain([100, 100], -Math.PI / 4, [25, 10, 8, 5, 3, 2], ctx)
+}
 
-  // for (let i = 0; i < steps; i++) {
-  //   const turn = Math.PI
-  //   ctx.arc(center[0], center[1], radius, 0, turn)
-  //   const polarCenter = polarToCartesian(radius, turn, origin=center)
-  //   // cartesianToPolar([polarCenter[0], polarCenter[1] + turn] 
-  // }
+function wiggleChain(start, angle, radii, ctx) {
+  let [x, y] = start
+  for (let i = 0; i < radii.length; i++) {
+    ctx.arc(x, y, radii[i], angle, angle + Math.PI, i % 2)
+    x += (radii[i] + radii[i + 1]) * Math.sin(angle)
+    y += (radii[i] + radii[i + 1]) * Math.cos(angle)
+    ctx.stroke()
+  }
 }
 
 function circleChain(start, angle, radii, ctx) {

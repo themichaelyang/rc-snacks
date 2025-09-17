@@ -17,10 +17,10 @@ window.onload = () => {
   let center = [0, 0]
   let radius = 10
 
-  wiggleChain([100, 100], -Math.PI / 4, [25, 10, 8, 5, 3, 2], ctx)
+  wiggleLine([100, 100], -Math.PI / 4, [25, 10, 8, 5, 3, 2], ctx)
 }
 
-function wiggleChain(start, angle, radii, ctx) {
+function wiggleLine(start, angle, radii, ctx) {
   let [x, y] = start
   for (let i = 0; i < radii.length; i++) {
     ctx.arc(x, y, radii[i], angle, angle + Math.PI, i % 2)
@@ -30,7 +30,7 @@ function wiggleChain(start, angle, radii, ctx) {
   }
 }
 
-function circleChain(start, angle, radii, ctx) {
+function circleLine(start, angle, radii, ctx) {
   let [x, y] = start
   for (let i = 0; i < radii.length; i++) {
     ctx.moveTo(x + radii[i], y)

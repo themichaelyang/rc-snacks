@@ -22,7 +22,7 @@ window.onload = () => {
   // wiggleLine([100, 100], Math.PI, [25, 10, 8, 5, 3, 2], ctx)
  
   ctx.lineWidth = 1
-  vine([100, 100], Math.PI / 4, [Math.PI / 4, Math.PI / 4, Math.PI / 4], [40, 30, 20], ctx)
+  vine([100, 100], 0, [Math.PI / 2, 1.5 * Math.PI, Math.PI / 2], [40, 30, 20], ctx)
 }
 
 function vine(start, startAngle, angles, radii, ctx) {
@@ -31,11 +31,14 @@ function vine(start, startAngle, angles, radii, ctx) {
   let edgeStart = start
   let center = moveInDirection(edgeStart, radii[0], angle)
 
-  for (let i = 0; i < radii.length; i++) {
+  for (let i = 0; i < radii.length; i++) {  
+    angle += angles[i]
     drawPoint(center[0], center[1], ctx)
-    drawPoint(edgeStart[0], edgeStart[1], ctx)    
+    drawPoint(edgeStart[0], edgeStart[1], ctx)
     
     let edgeEnd = moveInDirection(center, radii[i], angle)
+    drawPoint(edgeEnd[0], edgeEnd[1], ctx)    
+
     let angleStart = cartesianToPolar(edgeStart, center)[1]
     let angleEnd = cartesianToPolar(edgeEnd, center)[1]
 
@@ -45,7 +48,6 @@ function vine(start, startAngle, angles, radii, ctx) {
     counterClockwise = !counterClockwise
     edgeStart = edgeEnd
     center = moveInDirection(edgeEnd, radii[i + 1], angle)
-    angle += angles[i]
   }
 }
 

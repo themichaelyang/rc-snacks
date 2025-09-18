@@ -22,7 +22,11 @@ window.onload = () => {
   // wiggleLine([100, 100], Math.PI, [25, 10, 8, 5, 3, 2], ctx)
  
   ctx.lineWidth = 1
-  vine([100, 100], 0, [Math.PI / 2, 1.5 * Math.PI, Math.PI / 2], [40, 30, 20], ctx)
+
+  // to keep things moving forward, keep things between 3/2 pi and pi / 2
+  // ideally between pi / 2and -pi / 2, so it wiggles naturally
+  // TODO: double check the bounds for a natural vine, maybe automatically set using counterClockwise?
+  vine([100, 100], 0, [Math.PI / 2, Math.PI / 2, Math.PI / 2, Math.PI / 2], [40, 30, 20, 10, 8], ctx)
 }
 
 function vine(start, startAngle, angles, radii, ctx) {
@@ -31,8 +35,14 @@ function vine(start, startAngle, angles, radii, ctx) {
   let edgeStart = start
   let center = moveInDirection(edgeStart, radii[0], angle)
 
-  for (let i = 0; i < radii.length; i++) {  
-    angle += angles[i]
+  for (let i = 0; i < radii.length; i++) {
+    // so we can always pass small angles
+    if (counterClockwise) {
+      angle += angles[i]
+    } else {
+      angle += 2 * Math.PI - angles[i]
+    }
+    
     drawPoint(center[0], center[1], ctx)
     drawPoint(edgeStart[0], edgeStart[1], ctx)
     

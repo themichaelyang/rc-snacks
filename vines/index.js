@@ -20,44 +20,32 @@ window.onload = () => {
   let radius = 10
 
   // wiggleLine([100, 100], Math.PI, [25, 10, 8, 5, 3, 2], ctx)
-  vine([100, 100], [Math.PI / 4, Math.PI / 4, Math.PI / 4], [40, 30, 20], ctx)
+ 
+  ctx.lineWidth = 1
+  vine([100, 100], Math.PI / 4, [Math.PI / 4, Math.PI / 4, Math.PI / 4], [40, 30, 20], ctx)
 }
 
-function vine(start, angles, radii, ctx) {
+function vine(start, startAngle, angles, radii, ctx) {
   let counterClockwise = true
-  let center = start
-  let angle = angles[0]
-  let edgeStart = moveInDirection(center, radii[0], angle - Math.PI)
-  let edgeEnd = moveInDirection(center, radii[0], angle)
+  let angle = startAngle
+  let edgeStart = start
+  let center = moveInDirection(edgeStart, radii[0], angle)
 
-  let angleStart = cartesianToPolar(edgeStart, center)[1]
-  let angleEnd = cartesianToPolar(edgeEnd, center)[1]
-
-  ctx.arc(center[0], center[1], radii[0], angleStart, angleEnd, counterClockwise)    
-  ctx.stroke()
-  
-  counterClockwise = !counterClockwise
-  edgeStart = edgeEnd
-
-  for (let i = 1; i < radii.length; i++) {
-    center = moveInDirection(edgeStart, radii[i], angle)
+  for (let i = 0; i < radii.length; i++) {
     drawPoint(center[0], center[1], ctx)
     drawPoint(edgeStart[0], edgeStart[1], ctx)    
     
-    let turn = angles[i]
-    angle += turn
-
-    edgeEnd = moveInDirection(center, radii[i], angle)
-
-    ctx.moveTo(edgeStart[0], edgeStart[1])
-    angleStart = cartesianToPolar(edgeStart, center)[1]
-    angleEnd = cartesianToPolar(edgeEnd, center)[1]
+    let edgeEnd = moveInDirection(center, radii[i], angle)
+    let angleStart = cartesianToPolar(edgeStart, center)[1]
+    let angleEnd = cartesianToPolar(edgeEnd, center)[1]
 
     ctx.arc(center[0], center[1], radii[i], angleStart, angleEnd, counterClockwise)    
     ctx.stroke()
-
+    
     counterClockwise = !counterClockwise
     edgeStart = edgeEnd
+    center = moveInDirection(edgeEnd, radii[i + 1], angle)
+    angle += angles[i]
   }
 }
 
@@ -119,8 +107,7 @@ function drawPoint(x, y, ctx) {
   ctx.beginPath()
   ctx.moveTo(x, y)
   ctx.fillStyle = 'red'
-  ctx.strokeWidth = 0
-  ctx.arc(x, y, 1, 0, 2 * Math.PI)
+  ctx.arc(x, y, 2, 0, 2 * Math.PI)
   ctx.fill()
   ctx.beginPath()
 }

@@ -31,8 +31,8 @@ window.onload = () => {
 
   // vine(ctx)
 
-  let vine = new Vine(ctx, new Vec2(200, 200), 40, 15, true)
-  ctx.lineWidth = 6
+  let vine = new Vine(ctx, new Vec2(200, 200), 60, 15, true)
+  ctx.lineWidth = 10
   // scales should not follow other scales
   // vine.arc(45)
   //   .flip()
@@ -67,9 +67,11 @@ window.onload = () => {
   //   .scale(0.9)
   //   .arc(45)
 
-  for (let i = 0; i < 50; i++) {
-    vine = vine.randomOp()
-  }
+    
+  let iterationLength = 30
+  vine.grow(iterationLength)
+  console.log(vine.history)
+  console.log(vine.history.length)
 }
 
 // TODO: idea for transition probabilities? for now can just interleave scales, just don't want a flip to follow another flip
@@ -89,13 +91,14 @@ function puts(...args) {
 // all angles are expressed in degrees
 // TODO: click to add points to vine?
 class Vine {
-  constructor(ctx, start, startRadius, startAngle, counterClockwise, defaultArc=45, defaultScale=0.9) {
+  constructor(ctx, start, startRadius, startAngle, counterClockwise, defaultArc=45, defaultScale=0.8) {
     // start is point on first arc
     // current is then in direction of the start angle from start
     // we need to calculate the center based on those? and pick the center that matches the rotation direction
     startAngle = Angle.degreesToRadians(startAngle)
     this.ctx = ctx
     this.current = start
+    this.start = start
 
     let toCenterClockwise = Angle.direction(startAngle).right
     let toCenterCounterClockwise = toCenterClockwise.right.right
@@ -111,23 +114,52 @@ class Vine {
     this.defaultArc = defaultArc
     this.defaultScale = defaultScale
     // 'flip', 'scale', 'arc'
-    this.probabilities = [0.33, 0.33]
+    this.probabilities = [0.6, 0.33]
+
+    this.cumulativeArc = 0
   }
 
-  randomOp() {    
+  randomOp() {
     let rand = Math.random()
-    console.log("hey!")
-    console.log(offsetSum(this.probabilities, 0))
-    console.log(offsetSum(this.probabilities, 1))
+    this.defaultScale -= 0.01
+
+    if (this.cumulativeArc > 270) {
+      this.probabilities[0] = 0
+      // this.defaultScale = 0.25
+    }
   
     if (rand < offsetSum(this.probabilities, 0)) {
+      this.cumulativeArc = 0
       this.flip()
-      this.probabilities[0] = 0
+      this.arc(randomInt(60, 90))
+      this.flip()
+
+      if (this.probabilities[0] > 0) {
+        this.probabilities[0] -= 0.1
+        this.probabilities[1] += 0.05
+      }
+
+      if (this.probabilities[0] < 0) {
+        this.probabilities[0] = 0
+      }
     }
     else if (rand < offsetSum(this.probabilities, 1)) {
+      // this.scale(randomFloat(0.8, 1))
+      this.arc(randomInt(60, 80))
       this.scale(this.defaultScale)
     } else {
-      this.arc(this.defaultArc)
+      // this.arc(this.defaultArc)
+      this.arc(randomInt(50, 70))
+    }
+
+    return this
+  }
+
+  grow(iterationLength) {
+    for (let i = 0; i < iterationLength; i++) {
+      // this.defaultScale = i / iterationLength
+      console.log(this.defaultScale)
+      this.randomOp()
     }
 
     return this
@@ -142,6 +174,7 @@ class Vine {
   }
 
   arc(angle) {
+    this.cumulativeArc += angle
     this.history.push(['arc', angle])
     angle = Angle.degreesToRadians(angle)
     this.current = turnRadius(this.ctx, this.current, this.center, angle, this.counterClockwise)
@@ -151,6 +184,10 @@ class Vine {
   scale(factor) {
     this.history.push(['scale', factor])
     this.ctx.lineWidth *= factor
+    // this.ctx.lineWidth = 5 - Math.pow(Math.E, -1 * this.history.length)
+
+    // console.log("HI")
+    // console.log(1 - Math.pow(Math.E, -1 * this.history.length))
     this.center = scaleRadius(this.current, this.center, factor)
     return this
   }
@@ -173,7 +210,7 @@ function startArc(start, angleToCenter, radius, counterClockwise) {
 
 // returns new ending point
 function turnRadius(ctx, start, center, angle, counterClockwise) {
-  // drawPoint(center.x, center.y, ctx)
+  drawPoint(center.x, center.y, ctx)
   const end = start.rotateAbout(center, angle, !counterClockwise)
   ctx.arc(center.x, center.y, start.distance(center), start.angleAbout(center), end.angleAbout(center), counterClockwise)
   ctx.stroke()
@@ -292,8 +329,12 @@ function drawPoint(x, y, ctx) {
 }
 
 // inclusive of max
-function random(min, max) {
+function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function randomFloat(min, max) {
+  return (Math.random() * (max - min)) + min
 }
 
 function sample(array) {

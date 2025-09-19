@@ -29,7 +29,26 @@ window.onload = () => {
   // TODO: double check the bounds for a natural vine, maybe automatically set using counterClockwise?
   // arcLine([100, 100], 0, [Math.PI / 2, Math.PI / 2, Math.PI / 2, Math.PI / 2], [40, 30, 20, 10, 8], ctx)
 
-  vine(ctx)
+  // vine(ctx)
+
+  let vine = new Vine(ctx, new Vec2(100, 100), 30, 0)
+  vine.arc(30)
+    .flip()
+    .arc(30)
+    .arc(30)
+    .flip()
+    .scale(0.9)
+    .arc(30)
+    .arc(30)
+    .scale(0.9)
+    .arc(30)
+    .scale(0.9)
+    .flip()
+    .arc(30)
+    .scale(0.9)
+    .flip()
+    .arc(30)
+    .scale(0.9)
 }
 
 // I notice in the poptropica vine, it can preserve the direction while shrinking, so it has a more spiral like quality
@@ -44,9 +63,10 @@ function puts(...args) {
   console.log(...args)
 }
 
+// TODO click to create a vine?
 function vine(ctx) {
   let start = new Vec2(100, 100) 
-  let counterClockwise = false 
+  let counterClockwise = false // TODO: set based on start angle, return from startArc?
   let center = startArc(start, Angle.degreesToRadians(0), 30, counterClockwise)
   let current = turnRadius(ctx, start, center, Angle.degreesToRadians(90), counterClockwise)
   drawPoint(center.x, center.y, ctx)
@@ -71,6 +91,39 @@ function vine(ctx) {
   // turnRadius(start, )
 }
 
+// all angles are expressed in degrees
+class Vine {
+  // TODO: changing the start angle is just offsetting the center by an angle, not rotating it
+  constructor(ctx, start, startRadius, startAngle) {
+    startAngle = Angle.degreesToRadians(startAngle)
+    this.ctx = ctx
+    this.start = start
+    this.counterClockwise = false // TODO: set based on start angle, return from startArc?
+    this.center = startArc(start, startAngle, startRadius, this.counterClockwise)
+    this.current = this.center.add(new Vec2(0, startRadius)) // TODO set the starting "current"? use starting angle somehow?
+  }
+
+  get radius() {
+    return this.center.distance(this.current)
+  }
+
+  arc(angle) {
+    angle = Angle.degreesToRadians(angle)
+    this.current = turnRadius(this.ctx, this.current, this.center, angle, this.counterClockwise)
+    return this
+  }
+
+  scale(factor) {
+    this.center = scaleRadius(this.current, this.center, factor)
+    return this
+  }
+
+  flip() {
+    ;[this.center, this.counterClockwise] = changeDirection(this.current, this.center, this.counterClockwise)
+    return this
+  }
+}
+
 // returns center
 function startArc(start, angleToCenter, radius, counterClockwise) {
   return start.add(new Vec2(0, radius)).rotateAbout(start, angleToCenter, !counterClockwise)
@@ -78,6 +131,7 @@ function startArc(start, angleToCenter, radius, counterClockwise) {
 
 // returns new ending point
 function turnRadius(ctx, start, center, angle, counterClockwise) {
+  drawPoint(center.x, center.y, ctx)
   const end = start.rotateAbout(center, angle, !counterClockwise)
   ctx.arc(center.x, center.y, start.distance(center), start.angleAbout(center), end.angleAbout(center), counterClockwise)
   ctx.stroke()

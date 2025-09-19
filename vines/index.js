@@ -31,25 +31,48 @@ window.onload = () => {
 
   // vine(ctx)
 
-  let vine = new Vine(ctx, new Vec2(100, 100), 40, 15, true)
-  vine.arc(30)
-    .flip()
-    .arc(30)
-    .arc(30)
-    .flip()
-    .scale(0.9)
-    .arc(30)
-    .arc(30)
-    .scale(0.9)
-    .arc(30)
-    .scale(0.9)
-    .flip()
-    .arc(30)
-    .scale(0.9)
-    .flip()
-    .arc(30)
-    .scale(0.9)
+  let vine = new Vine(ctx, new Vec2(200, 200), 40, 15, true)
+  ctx.lineWidth = 6
+  // scales should not follow other scales
+  // vine.arc(45)
+  //   .flip()
+  //   .arc(45)
+  //   .arc(45)
+  //   .flip()
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .flip()
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .flip()
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+  //   .scale(0.9)
+  //   .arc(45)
+
+  for (let i = 0; i < 50; i++) {
+    vine = vine.randomOp()
+  }
 }
+
+// TODO: idea for transition probabilities? for now can just interleave scales, just don't want a flip to follow another flip
 
 // I notice in the poptropica vine, it can preserve the direction while shrinking, so it has a more spiral like quality
 // this current version always flips direction by reflecting the center point
@@ -63,37 +86,10 @@ function puts(...args) {
   console.log(...args)
 }
 
-// TODO click to create a vine?
-function vine(ctx) {
-  let start = new Vec2(100, 100) 
-  let counterClockwise = false // TODO: set based on start angle, return from startArc?
-  let center = startArc(start, Angle.degreesToRadians(0), 30, counterClockwise)
-  let current = turnRadius(ctx, start, center, Angle.degreesToRadians(90), counterClockwise)
-  drawPoint(center.x, center.y, ctx)
-  puts(start, center)
-  ;[center, counterClockwise] = changeDirection(current, center)
-  drawPoint(center.x, center.y, ctx)
-  puts(center)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-  center = scaleRadius(current, center, 0.9)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-  center = scaleRadius(current, center, 0.9)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-  center = scaleRadius(current, center, 0.9)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-  center = scaleRadius(current, center, 0.9)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-  center = scaleRadius(current, center, 0.9)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-  center = scaleRadius(current, center, 0.9)
-  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
-
-  // turnRadius(start, )
-}
-
 // all angles are expressed in degrees
+// TODO: click to add points to vine?
 class Vine {
-  constructor(ctx, start, startRadius, startAngle, counterClockwise) {
+  constructor(ctx, start, startRadius, startAngle, counterClockwise, defaultArc=45, defaultScale=0.9) {
     // start is point on first arc
     // current is then in direction of the start angle from start
     // we need to calculate the center based on those? and pick the center that matches the rotation direction
@@ -103,33 +99,71 @@ class Vine {
 
     let toCenterClockwise = Angle.direction(startAngle).right
     let toCenterCounterClockwise = toCenterClockwise.right.right
-    
+
     if (counterClockwise) {
       this.center = start.add(toCenterCounterClockwise.mult(startRadius))
     } else {
       this.center = start.add(toCenterClockwise.mult(startRadius))
     }
+
+    this.history = [['new', start, startRadius, startAngle, counterClockwise]]
+
+    this.defaultArc = defaultArc
+    this.defaultScale = defaultScale
+    // 'flip', 'scale', 'arc'
+    this.probabilities = [0.33, 0.33]
+  }
+
+  randomOp() {    
+    let rand = Math.random()
+    console.log("hey!")
+    console.log(offsetSum(this.probabilities, 0))
+    console.log(offsetSum(this.probabilities, 1))
+  
+    if (rand < offsetSum(this.probabilities, 0)) {
+      this.flip()
+      this.probabilities[0] = 0
+    }
+    else if (rand < offsetSum(this.probabilities, 1)) {
+      this.scale(this.defaultScale)
+    } else {
+      this.arc(this.defaultArc)
+    }
+
+    return this
   }
 
   get radius() {
     return this.center.distance(this.current)
   }
 
+  get lastCommand() {
+    return this.history[this.history.length - 1][0]
+  }
+
   arc(angle) {
+    this.history.push(['arc', angle])
     angle = Angle.degreesToRadians(angle)
     this.current = turnRadius(this.ctx, this.current, this.center, angle, this.counterClockwise)
     return this
   }
 
   scale(factor) {
+    this.history.push(['scale', factor])
+    this.ctx.lineWidth *= factor
     this.center = scaleRadius(this.current, this.center, factor)
     return this
   }
 
   flip() {
+    this.history.push(['flip'])
     ;[this.center, this.counterClockwise] = changeDirection(this.current, this.center, this.counterClockwise)
     return this
   }
+}
+
+function offsetSum(arr, lastIndex) {
+  return arr.slice(0, lastIndex + 1).reduce((accumulator, currentValue) => accumulator + currentValue, 0)
 }
 
 // returns center
@@ -139,7 +173,7 @@ function startArc(start, angleToCenter, radius, counterClockwise) {
 
 // returns new ending point
 function turnRadius(ctx, start, center, angle, counterClockwise) {
-  drawPoint(center.x, center.y, ctx)
+  // drawPoint(center.x, center.y, ctx)
   const end = start.rotateAbout(center, angle, !counterClockwise)
   ctx.arc(center.x, center.y, start.distance(center), start.angleAbout(center), end.angleAbout(center), counterClockwise)
   ctx.stroke()
@@ -175,7 +209,7 @@ function arcLine(start, startAngle, angles, radii, ctx) {
     } else {
       angle += 2 * Math.PI - angles[i]
     }
-    
+   
     drawPoint(center[0], center[1], ctx)
     drawPoint(edgeStart[0], edgeStart[1], ctx)
     
@@ -255,4 +289,13 @@ function drawPoint(x, y, ctx) {
   ctx.arc(x, y, 2, 0, 2 * Math.PI)
   ctx.fill()
   ctx.beginPath()
+}
+
+// inclusive of max
+function random(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function sample(array) {
+  return array[random(0, array.length - 1)]
 }

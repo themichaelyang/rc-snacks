@@ -1,4 +1,5 @@
-'use strict'
+import './vec2.js'
+import { Angle, Vec2 } from './vec2.js'
 
 window.onload = () => {
   const canvas = document.getElementById('visualization')
@@ -26,10 +27,80 @@ window.onload = () => {
   // to keep things moving forward, keep things between 3/2 pi and pi / 2
   // ideally between pi / 2and -pi / 2, so it wiggles naturally
   // TODO: double check the bounds for a natural vine, maybe automatically set using counterClockwise?
-  vine([100, 100], 0, [Math.PI / 2, Math.PI / 2, Math.PI / 2, Math.PI / 2], [40, 30, 20, 10, 8], ctx)
+  // arcLine([100, 100], 0, [Math.PI / 2, Math.PI / 2, Math.PI / 2, Math.PI / 2], [40, 30, 20, 10, 8], ctx)
+
+  vine(ctx)
 }
 
-function vine(start, startAngle, angles, radii, ctx) {
+// I notice in the poptropica vine, it can preserve the direction while shrinking, so it has a more spiral like quality
+// this current version always flips direction by reflecting the center point
+//
+// new idea:
+// rule 1: draw arc for angle
+// rule 2: shrink arc (reduce radius along center vector)
+// rule 3: change direction (reflect center across tangent)
+
+function puts(...args) {
+  console.log(...args)
+}
+
+function vine(ctx) {
+  let start = new Vec2(100, 100) 
+  let counterClockwise = false 
+  let center = startArc(start, Angle.degreesToRadians(0), 30, counterClockwise)
+  let current = turnRadius(ctx, start, center, Angle.degreesToRadians(90), counterClockwise)
+  drawPoint(center.x, center.y, ctx)
+  puts(start, center)
+  ;[center, counterClockwise] = changeDirection(current, center)
+  drawPoint(center.x, center.y, ctx)
+  puts(center)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+  center = scaleRadius(current, center, 0.9)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+  center = scaleRadius(current, center, 0.9)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+  center = scaleRadius(current, center, 0.9)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+  center = scaleRadius(current, center, 0.9)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+  center = scaleRadius(current, center, 0.9)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+  center = scaleRadius(current, center, 0.9)
+  current = turnRadius(ctx, current, center, Angle.degreesToRadians(90), counterClockwise)
+
+  // turnRadius(start, )
+}
+
+// returns center
+function startArc(start, angleToCenter, radius, counterClockwise) {
+  return start.add(new Vec2(0, radius)).rotateAbout(start, angleToCenter, !counterClockwise)
+}
+
+// returns new ending point
+function turnRadius(ctx, start, center, angle, counterClockwise) {
+  const end = start.rotateAbout(center, angle, !counterClockwise)
+  ctx.arc(center.x, center.y, start.distance(center), start.angleAbout(center), end.angleAbout(center), counterClockwise)
+  ctx.stroke()
+
+  return end
+}
+
+// returns new center -- should we instead deal with normal vectors and radiuses?
+function scaleRadius(current, center, scale) {
+  const radius = center.distance(current)
+  const normal = center.sub(current).unit
+
+  return normal.mult(radius * scale).add(current)
+}
+
+// returns new center
+function changeDirection(current, center, counterClockwise) {
+  const normal = center.sub(current)
+
+  return [normal.mult(-1).add(current), !counterClockwise]
+}
+
+function arcLine(start, startAngle, angles, radii, ctx) {
   let counterClockwise = true
   let angle = startAngle
   let edgeStart = start

@@ -43,6 +43,9 @@ export class Vec2 {
   angleAbout(origin) {
     return this.sub(origin).angle;
   }
+  towards(angle, length) {
+    return this.add(Angle.direction(angle).mult(length));
+  }
   get angle() {
     return this.polar.angle;
   }
@@ -127,5 +130,8 @@ export class Angle {
   }
   static degreesToRadians(degrees) {
     return Angle.turnsToRadians(degrees / 360);
+  }
+  static direction(angle) {
+    return new Vec2(Math.cos(angle), Math.sin(angle));
   }
 }

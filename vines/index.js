@@ -31,7 +31,7 @@ window.onload = () => {
 
   // vine(ctx)
 
-  let vine = new Vine(ctx, new Vec2(100, 100), 30, 0)
+  let vine = new Vine(ctx, new Vec2(100, 100), 40, 15, true)
   vine.arc(30)
     .flip()
     .arc(30)
@@ -93,14 +93,22 @@ function vine(ctx) {
 
 // all angles are expressed in degrees
 class Vine {
-  // TODO: changing the start angle is just offsetting the center by an angle, not rotating it
-  constructor(ctx, start, startRadius, startAngle) {
+  constructor(ctx, start, startRadius, startAngle, counterClockwise) {
+    // start is point on first arc
+    // current is then in direction of the start angle from start
+    // we need to calculate the center based on those? and pick the center that matches the rotation direction
     startAngle = Angle.degreesToRadians(startAngle)
     this.ctx = ctx
-    this.start = start
-    this.counterClockwise = false // TODO: set based on start angle, return from startArc?
-    this.center = startArc(start, startAngle, startRadius, this.counterClockwise)
-    this.current = this.center.add(new Vec2(0, startRadius)) // TODO set the starting "current"? use starting angle somehow?
+    this.current = start
+
+    let toCenterClockwise = Angle.direction(startAngle).right
+    let toCenterCounterClockwise = toCenterClockwise.right.right
+    
+    if (counterClockwise) {
+      this.center = start.add(toCenterCounterClockwise.mult(startRadius))
+    } else {
+      this.center = start.add(toCenterClockwise.mult(startRadius))
+    }
   }
 
   get radius() {

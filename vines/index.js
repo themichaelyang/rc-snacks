@@ -126,17 +126,14 @@ class Vine {
     let randomAngle = () => randomInt(60, 120)
 
     if (this.current.distance(this.center) < 40) {
-      for (let i = 0; i < randomInt(1, 4); i++) {
+      console.log("SPIRALING")
+      for (let i = 0; i < randomInt(2, 6); i++) {
         this.arc(20)
       }
       // this.arc(randomInt(30, 60))
-      this.scale(0.9, 1)
-      for (let i = 0; i < randomInt(1, 4); i++) {
-        this.arc(20)
-      }
+      this.scale(0.9, randomInt(1, 3))
       // this.arc(randomInt(30, 60))
       // this.arc(randomInt(30, 60))
-      this.scale(0.9, 1)
     }
     else {
       this.flip()
@@ -162,7 +159,6 @@ class Vine {
         this.scale(1, 20)
       }
     }
-    
     
     return this
   }
@@ -229,7 +225,7 @@ function startArc(start, angleToCenter, radius, counterClockwise) {
 
 // returns new ending point
 function turnRadius(ctx, start, center, angle, counterClockwise) {
-  drawPoint(center.x, center.y, ctx)
+  // drawPoint(center.x, center.y, ctx)
   const end = start.rotateAbout(center, angle, !counterClockwise)
   ctx.arc(center.x, center.y, start.distance(center), start.angleAbout(center), end.angleAbout(center), counterClockwise)
   ctx.stroke()

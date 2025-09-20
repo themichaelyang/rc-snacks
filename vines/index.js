@@ -1,6 +1,8 @@
 import './vec2.js'
 import { Angle, Vec2 } from './vec2.js'
 
+// TODO: could set up a GUI with sliders for parameters to generate a bunch of vines all at once 
+// in a grid to find optimal vines
 window.onload = () => {
   const canvas = document.getElementById('visualization')
   const ctx = canvas.getContext("2d")
@@ -31,7 +33,9 @@ window.onload = () => {
 
   // vine(ctx)
 
-  let vine = new Vine(ctx, new Vec2(200, 200), 60, 15, true)
+  // let vine = new Vine(ctx, new Vec2(0, 0), 100, 45, true)
+  // let vine = new Vine(ctx, new Vec2(200, 200), 100, randomInt(45, 90), true)
+  let vine = new Vine(ctx, new Vec2(100, 100), randomInt(50, 100), randomInt(90, 120), true)
   ctx.lineWidth = 10
   // scales should not follow other scales
   // vine.arc(45)
@@ -67,9 +71,7 @@ window.onload = () => {
   //   .scale(0.9)
   //   .arc(45)
 
-    
-  let iterationLength = 30
-  vine.grow(iterationLength)
+  vine.grow(8)
   console.log(vine.history)
   console.log(vine.history.length)
 }
@@ -91,7 +93,7 @@ function puts(...args) {
 // all angles are expressed in degrees
 // TODO: click to add points to vine?
 class Vine {
-  constructor(ctx, start, startRadius, startAngle, counterClockwise, defaultArc=45, defaultScale=0.8) {
+  constructor(ctx, start, startRadius, startAngle, counterClockwise, defaultArc=45, defaultScale=0.7) {
     // start is point on first arc
     // current is then in direction of the start angle from start
     // we need to calculate the center based on those? and pick the center that matches the rotation direction
@@ -119,47 +121,55 @@ class Vine {
     this.cumulativeArc = 0
   }
 
-  randomOp() {
-    let rand = Math.random()
-    this.defaultScale -= 0.01
+  // TODO: figure out how to bias the direction, so that it can grow back into the viewport
+  randomOp(remainingSteps) {
+    let randomAngle = () => randomInt(60, 120)
 
-    if (this.cumulativeArc > 270) {
-      this.probabilities[0] = 0
-      // this.defaultScale = 0.25
-    }
-  
-    if (rand < offsetSum(this.probabilities, 0)) {
-      this.cumulativeArc = 0
-      this.flip()
-      this.arc(randomInt(60, 90))
-      this.flip()
-
-      if (this.probabilities[0] > 0) {
-        this.probabilities[0] -= 0.1
-        this.probabilities[1] += 0.05
+    if (this.current.distance(this.center) < 40) {
+      for (let i = 0; i < randomInt(1, 4); i++) {
+        this.arc(20)
       }
+      // this.arc(randomInt(30, 60))
+      this.scale(0.9, 1)
+      for (let i = 0; i < randomInt(1, 4); i++) {
+        this.arc(20)
+      }
+      // this.arc(randomInt(30, 60))
+      // this.arc(randomInt(30, 60))
+      this.scale(0.9, 1)
+    }
+    else {
+      this.flip()
+      // to smooth out gradual thinning
+      // TODO: thin based on distance traveled?
+      for (let i = 0; i < randomInt(3, 6); i++) {
+        this.arc(20)
+      }
+      // this.arc(randomAngle())
+      // this.flip()
+      if (flipCoin(0.5)) {
+        this.flip()
+      }
+      for (let i = 0; i < randomInt(3, 6); i++) {
+        this.arc(20)
+      }
+      // this.arc(randomAngle())
 
-      if (this.probabilities[0] < 0) {
-        this.probabilities[0] = 0
+      if (this.current.distance(this.center) < 60) {
+        this.scale(0.6)
+      }
+      else {
+        this.scale(1, 20)
       }
     }
-    else if (rand < offsetSum(this.probabilities, 1)) {
-      // this.scale(randomFloat(0.8, 1))
-      this.arc(randomInt(60, 80))
-      this.scale(this.defaultScale)
-    } else {
-      // this.arc(this.defaultArc)
-      this.arc(randomInt(50, 70))
-    }
-
+    
+    
     return this
   }
 
-  grow(iterationLength) {
-    for (let i = 0; i < iterationLength; i++) {
-      // this.defaultScale = i / iterationLength
-      console.log(this.defaultScale)
-      this.randomOp()
+  grow(steps) {
+    for (let i = 0; i < steps; i++) {
+      this.randomOp(steps - i)
     }
 
     return this
@@ -174,25 +184,30 @@ class Vine {
   }
 
   arc(angle) {
-    this.cumulativeArc += angle
+    if (this.ctx.lineWidth > 3) {
+      this.ctx.lineWidth -= 0.25
+    }
+    // this.ctx.lineWidth -= 0.5
+    // this.cumulativeArc += angle
     this.history.push(['arc', angle])
     angle = Angle.degreesToRadians(angle)
     this.current = turnRadius(this.ctx, this.current, this.center, angle, this.counterClockwise)
     return this
   }
 
-  scale(factor) {
+  scale(factor, constant=0) {
+    if (this.ctx.lineWidth > 3) {
+      this.ctx.lineWidth -= 0.25
+    }
+    // this.defaultScale -= 0.01
     this.history.push(['scale', factor])
-    this.ctx.lineWidth *= factor
-    // this.ctx.lineWidth = 5 - Math.pow(Math.E, -1 * this.history.length)
-
-    // console.log("HI")
-    // console.log(1 - Math.pow(Math.E, -1 * this.history.length))
-    this.center = scaleRadius(this.current, this.center, factor)
+    // this.ctx.lineWidth *= factor
+    this.center = scaleRadius(this.current, this.center, factor, constant)
     return this
   }
 
   flip() {
+    this.ctx.lineWidth -= 0.5
     this.history.push(['flip'])
     ;[this.center, this.counterClockwise] = changeDirection(this.current, this.center, this.counterClockwise)
     return this
@@ -201,6 +216,10 @@ class Vine {
 
 function offsetSum(arr, lastIndex) {
   return arr.slice(0, lastIndex + 1).reduce((accumulator, currentValue) => accumulator + currentValue, 0)
+}
+
+function sum(arr) {
+  return offsetSum(arr, arr.length - 1)
 }
 
 // returns center
@@ -219,8 +238,9 @@ function turnRadius(ctx, start, center, angle, counterClockwise) {
 }
 
 // returns new center -- should we instead deal with normal vectors and radiuses?
-function scaleRadius(current, center, scale) {
-  const radius = center.distance(current)
+function scaleRadius(current, center, scale, constant) {
+  const radius = clamp(center.distance(current) - constant, 0)
+  console.log(radius)
   const normal = center.sub(current).unit
 
   return normal.mult(radius * scale).add(current)
@@ -231,6 +251,10 @@ function changeDirection(current, center, counterClockwise) {
   const normal = center.sub(current)
 
   return [normal.mult(-1).add(current), !counterClockwise]
+}
+
+function angleTowards(center, current, direction) {
+
 }
 
 function arcLine(start, startAngle, angles, radii, ctx) {
@@ -339,4 +363,38 @@ function randomFloat(min, max) {
 
 function sample(array) {
   return array[random(0, array.length - 1)]
+}
+
+function weightedSample(array, weights) {
+  if (array.length != weights.length) {
+    throw new Error(`Array and distribution should be same length: array.length:` +
+                    `${array.length} != weights.length: ${weights.length}`)
+  }
+
+  let total = sum(weights)
+  let rand = randomFloat(0, total)
+  let cumulative = 0
+  for (let i = 0; i < weights.length; i++) {
+    cumulative += weights[i]
+    if (rand < cumulative) {
+      return array[i]
+    }
+  }
+
+  throw new Error(`Random is greater than total! Do you have a negative weight? rand: ${rand}`)
+}
+
+// inclusive of max
+function clamp(value, min, max=Infinity) {
+  if (value <= min) {
+    return min
+  } else if (value >= max) {
+    return max
+  } else {
+    return value
+  }
+}
+
+function flipCoin(trueProb) {
+  return weightedSample([true, false], [trueProb, 1 - trueProb])
 }

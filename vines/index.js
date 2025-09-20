@@ -25,6 +25,7 @@ window.onload = () => {
   // wiggleLine([100, 100], Math.PI, [25, 10, 8, 5, 3, 2], ctx)
  
   ctx.lineWidth = 1
+  ctx.strokeStyle = '#139ffd'
 
   // to keep things moving forward, keep things between 3/2 pi and pi / 2
   // ideally between pi / 2and -pi / 2, so it wiggles naturally
@@ -38,45 +39,11 @@ window.onload = () => {
   let vine = new Vine(ctx, new Vec2(100, 100), randomInt(50, 100), randomInt(90, 120), true)
   ctx.lineWidth = 10
   // scales should not follow other scales
-  // vine.arc(45)
-  //   .flip()
-  //   .arc(45)
-  //   .arc(45)
-  //   .flip()
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .flip()
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .flip()
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
-  //   .scale(0.9)
-  //   .arc(45)
 
   vine.grow(8)
   console.log(vine.history)
   console.log(vine.history.length)
 }
-
-// TODO: idea for transition probabilities? for now can just interleave scales, just don't want a flip to follow another flip
 
 // I notice in the poptropica vine, it can preserve the direction while shrinking, so it has a more spiral like quality
 // this current version always flips direction by reflecting the center point

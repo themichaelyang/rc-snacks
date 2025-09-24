@@ -50,20 +50,24 @@ window.onload = () => {
   //   vine.grow(6)
   // }
   for (let i = 0; i < 2; i++) {
-    let vine = new Vine(ctx, new Vec2(100 + 200 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(90, 120), true)
+    let vine = new Vine(ctx, new Vec2(100 + 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(90, 120), true)
     vine.grow(6)
   }
 
   for (let i = 0; i < 2; i++) {
-    let vine = new Vine(ctx, new Vec2(1000 - 200 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
+    let vine = new Vine(ctx, new Vec2(1000 - 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
     vine.grow(6)
   }
 
   // ctx.lineWidth = 10
-  let vine = new Vine(ctx, new Vec2(0, 200), randomInt(50, 90), 90, true)
+  let vine = new Vine(ctx, new Vec2(0, 200 + randomInt(-20, 20)), randomInt(50, 90), 90, true)
+  vine.flip()
+  vine.arc(randomInt(20, 60))
   vine.grow(8)
 
-  vine = new Vine(ctx, new Vec2(1000, 200), randomInt(50, 90), 180, true)
+  vine = new Vine(ctx, new Vec2(1000, 200 + randomInt(-20, 20)), randomInt(50, 90), 180, true)
+  vine.flip()
+  vine.arc(randomInt(20, 60))
   vine.grow(8)
     // let vine = new Vine(ctx, new Vec2(400, 400), 100, 180, false)
     // vine.grow(1)
@@ -125,12 +129,14 @@ class Vine {
     let randomAngle = () => randomInt(60, 120)
     
     if (this.current.distance(this.center) < 40) {
+      this.spiralScale = this.spiralScale || randomFloat(0.7, 0.9)
+      this.spiralStep = this.spiralStep || randomInt(30, 100)
     //   console.log("SPIRALING")
     //   this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
     //   this.arc(randomInt(60, 80))
       // this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
-      this.scale(randomFloat(0.7, 0.9))
-      this.arc(randomInt(60, 80))
+      this.scale(this.spiralScale)
+      this.arc(this.spiralStep)
       // for (let i = 0; i < randomInt(2, 6); i++) {
       //   this.arc(randomInt(20, 40))
       // }

@@ -50,22 +50,20 @@ window.onload = () => {
   //   vine.grow(6)
   // }
   for (let i = 0; i < 2; i++) {
-    ctx.lineWidth = 10
-    let vine = new Vine(ctx, new Vec2(100 + 200 * i, randomInt(-50, 0)), randomInt(30, 80), randomInt(90, 120), true)
+    let vine = new Vine(ctx, new Vec2(100 + 200 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(90, 120), true)
     vine.grow(6)
   }
 
   for (let i = 0; i < 2; i++) {
-    ctx.lineWidth = 10
-    let vine = new Vine(ctx, new Vec2(800 - 200 * i, randomInt(-50, 0)), randomInt(30, 80), randomInt(130, 180), true)
+    let vine = new Vine(ctx, new Vec2(1000 - 200 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
     vine.grow(6)
   }
 
   // ctx.lineWidth = 10
-  let vine = new Vine(ctx, new Vec2(0, 100), randomInt(50, 120), 90, true)
+  let vine = new Vine(ctx, new Vec2(0, 200), randomInt(50, 90), 90, true)
   vine.grow(8)
-  ctx.lineWidth = 10
-  vine = new Vine(ctx, new Vec2(800, 100), randomInt(50, 120), 180, true)
+
+  vine = new Vine(ctx, new Vec2(1000, 200), randomInt(50, 90), 180, true)
   vine.grow(8)
     // let vine = new Vine(ctx, new Vec2(400, 400), 100, 180, false)
     // vine.grow(1)

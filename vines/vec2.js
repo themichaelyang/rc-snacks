@@ -25,6 +25,7 @@ export class Vec2 {
   distance(other) {
     return this.sub(other).magnitude;
   }
+  // https://articulatedrobotics.xyz/tutorials/coordinate-transforms/rotation-matrices-2d/#deriving-the-rotation-matrix
   rotate(angle, clockwise = true) {
     if (!clockwise) {
       angle = Angle.TAU - angle;
@@ -64,9 +65,13 @@ export class Vec2 {
   get magnitude() {
     return Math.hypot(this.x, this.y);
   }
-  // rotate 90 degrees clockwise
+  // rotate 90 degrees clockwise by swapping x <-> y and inverting
   get right() {
     return new Vec2(this.y, -this.x);
+  }
+  // rotate 90 degrees counterclockwise
+  get left() {
+    return new Vec2(-this.y, this.x);
   }
   get unit() {
     return this.div(this.magnitude);

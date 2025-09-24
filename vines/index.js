@@ -24,7 +24,7 @@ window.onload = () => {
 
   // wiggleLine([100, 100], Math.PI, [25, 10, 8, 5, 3, 2], ctx)
  
-  ctx.lineWidth = 1
+  // ctx.lineWidth = 1
   ctx.strokeStyle = '#139ffd'
 
   // to keep things moving forward, keep things between 3/2 pi and pi / 2
@@ -36,13 +36,39 @@ window.onload = () => {
 
   // let vine = new Vine(ctx, new Vec2(0, 0), 100, 45, true)
   // let vine = new Vine(ctx, new Vec2(200, 200), 100, randomInt(45, 90), true)
-  let vine = new Vine(ctx, new Vec2(100, 100), randomInt(50, 100), randomInt(90, 120), true)
+  // let vine = new Vine(ctx, new Vec2(0, 100), randomInt(50, 100), randomInt(90, 120), true)
   ctx.lineWidth = 10
   // scales should not follow other scales
 
+  // vine.grow(8)
+  // console.log(vine.history)
+  // console.log(vine.history.length)
+
+  // for (let i = 0; i < 6; i++) {
+  //   ctx.lineWidth = 10
+  //   let vine = new Vine(ctx, new Vec2(100 + 100 * i, 0), randomInt(50, 120), randomInt(90, 120), true)
+  //   vine.grow(6)
+  // }
+  for (let i = 0; i < 3; i++) {
+    ctx.lineWidth = 10
+    let vine = new Vine(ctx, new Vec2(100 + 100 * i, 0), randomInt(50, 120), randomInt(90, 120), true)
+    vine.grow(8)
+  }
+
+  for (let i = 0; i < 3; i++) {
+    ctx.lineWidth = 10
+    let vine = new Vine(ctx, new Vec2(800 - 100 * i, 0), randomInt(50, 180), randomInt(130, 180), true)
+    vine.grow(8)
+  }
+
+  ctx.lineWidth = 10
+  let vine = new Vine(ctx, new Vec2(0, 100), randomInt(50, 120), 90, true)
   vine.grow(8)
-  console.log(vine.history)
-  console.log(vine.history.length)
+  ctx.lineWidth = 10
+  vine = new Vine(ctx, new Vec2(800, 100), randomInt(50, 120), 180, true)
+  vine.grow(8)
+    // let vine = new Vine(ctx, new Vec2(400, 400), 100, 180, false)
+    // vine.grow(1)
 }
 
 // I notice in the poptropica vine, it can preserve the direction while shrinking, so it has a more spiral like quality
@@ -86,19 +112,24 @@ class Vine {
     this.probabilities = [0.6, 0.33]
 
     this.cumulativeArc = 0
+    this.ctx.beginPath()
   }
 
   // TODO: figure out how to bias the direction, so that it can grow back into the viewport
-  randomOp(remainingSteps) {
+  randomOp(remainingSteps, totalSteps) {
+    // TODO: relate the angles to the radius
     let randomAngle = () => randomInt(60, 120)
-
+    
     if (this.current.distance(this.center) < 40) {
       console.log("SPIRALING")
-      for (let i = 0; i < randomInt(2, 6); i++) {
-        this.arc(20)
-      }
+      this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
+      this.arc(randomInt(60, 80))
+      this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
+      this.arc(randomInt(60, 80))
+      // for (let i = 0; i < randomInt(2, 6); i++) {
+      //   this.arc(randomInt(20, 40))
+      // }
       // this.arc(randomInt(30, 60))
-      this.scale(0.9, randomInt(1, 3))
       // this.arc(randomInt(30, 60))
       // this.arc(randomInt(30, 60))
     }
@@ -106,15 +137,15 @@ class Vine {
       this.flip()
       // to smooth out gradual thinning
       // TODO: thin based on distance traveled?
-      for (let i = 0; i < randomInt(3, 6); i++) {
+      for (let i = 0; i < randomInt(3, 8); i++) {
         this.arc(20)
       }
       // this.arc(randomAngle())
       // this.flip()
-      if (flipCoin(0.5)) {
+      if (flipCoin(remainingSteps / (totalSteps * 2))) {
         this.flip()
       }
-      for (let i = 0; i < randomInt(3, 6); i++) {
+      for (let i = 0; i < randomInt(3, 8); i++) {
         this.arc(20)
       }
       // this.arc(randomAngle())
@@ -123,7 +154,7 @@ class Vine {
         this.scale(0.6)
       }
       else {
-        this.scale(1, 20)
+        this.scale(1, 30)
       }
     }
     
@@ -132,7 +163,7 @@ class Vine {
 
   grow(steps) {
     for (let i = 0; i < steps; i++) {
-      this.randomOp(steps - i)
+      this.randomOp(steps - i, steps)
     }
 
     return this
@@ -154,7 +185,9 @@ class Vine {
     // this.cumulativeArc += angle
     this.history.push(['arc', angle])
     angle = Angle.degreesToRadians(angle)
+    this.ctx.beginPath()
     this.current = turnRadius(this.ctx, this.current, this.center, angle, this.counterClockwise)
+    this.ctx.beginPath()
     return this
   }
 
@@ -170,6 +203,7 @@ class Vine {
   }
 
   flip() {
+    // drawLeaf(this.ctx, this.current, this.center, !this.counterClockwise)
     this.ctx.lineWidth -= 0.5
     this.history.push(['flip'])
     ;[this.center, this.counterClockwise] = changeDirection(this.current, this.center, this.counterClockwise)
@@ -306,11 +340,11 @@ function remap(normalized, max, min) {
   return (normalized * (max - min)) * max
 }
 
-function drawPoint(x, y, ctx) {
+function drawPoint(x, y, ctx, color='red') {
   ctx.beginPath()
   ctx.moveTo(x, y)
-  ctx.fillStyle = 'red'
-  ctx.arc(x, y, 2, 0, 2 * Math.PI)
+  ctx.fillStyle = color
+  ctx.arc(x, y, 10, 0, 2 * Math.PI)
   ctx.fill()
   ctx.beginPath()
 }
@@ -361,3 +395,47 @@ function clamp(value, min, max=Infinity) {
 function flipCoin(trueProb) {
   return weightedSample([true, false], [trueProb, 1 - trueProb])
 }
+
+function drawLeaf(ctx, start, end, clockwise) {
+  let startToEnd = end.sub(start).unit.mult(end.distance(start) * 0.75)
+  console.log("HERE")
+  console.log(start, end, startToEnd, end.sub(start).unit, end.distance(start))
+
+  // todo: should be based on rotation of the vine
+  // let directionControl1 = end.sub(start).unit
+  let angle = end.angleAbout(start)
+  console.log("ANGLE")
+  console.log(Angle.radiansToDegrees(angle))
+
+  // let control1 = start.add(directionControl1.mult(50))
+  let control1 = new Vec2(end.x, end.y).rotateAbout(start, angle + Angle.degreesToRadians(45))
+  let control2 = start.add(startToEnd)
+  console.log(control1, control2)
+  // drawPoint(control1.x, control1.y, ctx, 'red')
+  // drawPoint(control2.x, control2.y, ctx, 'green')
+
+  // top of leafs
+  ctx.moveTo(start.x, start.y)
+  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
+  ctx.fillStyle = 'green'
+  ctx.fill()
+  ctx.stroke()
+
+  // bottom of leaf
+  ctx.moveTo(start.x, start.y)
+  control1 = new Vec2(end.x, end.y).rotateAbout(start, angle + Angle.degreesToRadians(45))
+  // control1 = new Vec2(start.x + 50, start.y)
+  // drawPoint(control1.x, control1.y, ctx, 'magenta')
+  ctx.beginPath()
+  ctx.moveTo(start.x, start.y)
+  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
+  ctx.fillStyle = 'red'
+  ctx.fill()
+  ctx.stroke()
+}
+
+// // Define the points as {x, y} 
+// let start = { x: 50, y: 20 }; 
+// let cp1 = { x: 230, y: 30 }; 
+// let cp2 = { x: 150, y: 80 }; 
+// let end = { x: 250, y: 100 };

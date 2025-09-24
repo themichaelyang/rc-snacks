@@ -46,22 +46,22 @@ window.onload = () => {
 
   // for (let i = 0; i < 6; i++) {
   //   ctx.lineWidth = 10
-  //   let vine = new Vine(ctx, new Vec2(100 + 100 * i, 0), randomInt(50, 120), randomInt(90, 120), true)
+  //   let vine = new Vine(ctx, new Vec2(100 + 100 * i, randomInt(-50, 0)), randomInt(50, 120), randomInt(90, 120), true)
   //   vine.grow(6)
   // }
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     ctx.lineWidth = 10
-    let vine = new Vine(ctx, new Vec2(100 + 100 * i, 0), randomInt(50, 120), randomInt(90, 120), true)
-    vine.grow(8)
+    let vine = new Vine(ctx, new Vec2(100 + 200 * i, randomInt(-50, 0)), randomInt(30, 80), randomInt(90, 120), true)
+    vine.grow(6)
   }
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     ctx.lineWidth = 10
-    let vine = new Vine(ctx, new Vec2(800 - 100 * i, 0), randomInt(50, 180), randomInt(130, 180), true)
-    vine.grow(8)
+    let vine = new Vine(ctx, new Vec2(800 - 200 * i, randomInt(-50, 0)), randomInt(30, 80), randomInt(130, 180), true)
+    vine.grow(6)
   }
 
-  ctx.lineWidth = 10
+  // ctx.lineWidth = 10
   let vine = new Vine(ctx, new Vec2(0, 100), randomInt(50, 120), 90, true)
   vine.grow(8)
   ctx.lineWidth = 10
@@ -86,12 +86,13 @@ function puts(...args) {
 // all angles are expressed in degrees
 // TODO: click to add points to vine?
 class Vine {
-  constructor(ctx, start, startRadius, startAngle, counterClockwise, defaultArc=45, defaultScale=0.7) {
+  constructor(ctx, start, startRadius, startAngle, counterClockwise, startLineWidth=10, defaultArc=45, defaultScale=0.7) {
     // start is point on first arc
     // current is then in direction of the start angle from start
     // we need to calculate the center based on those? and pick the center that matches the rotation direction
     startAngle = Angle.degreesToRadians(startAngle)
     this.ctx = ctx
+    this.ctx.lineWidth = startLineWidth
     this.current = start
     this.start = start
 
@@ -113,28 +114,36 @@ class Vine {
 
     this.cumulativeArc = 0
     this.ctx.beginPath()
+    this.flip()
+    this.arc(randomInt(30, 90))
+    this.flip()
+    this.arc(randomInt(30, 90))
   }
 
   // TODO: figure out how to bias the direction, so that it can grow back into the viewport
+  // TODO: should it arc based on distance rather than angle? should it limit based on length?
   randomOp(remainingSteps, totalSteps) {
     // TODO: relate the angles to the radius
     let randomAngle = () => randomInt(60, 120)
     
     if (this.current.distance(this.center) < 40) {
-      console.log("SPIRALING")
-      this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
-      this.arc(randomInt(60, 80))
-      this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
+    //   console.log("SPIRALING")
+    //   this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
+    //   this.arc(randomInt(60, 80))
+      // this.scale(randomFloat(0.8, 0.9), randomInt(2, 4))
+      this.scale(randomFloat(0.7, 0.9))
       this.arc(randomInt(60, 80))
       // for (let i = 0; i < randomInt(2, 6); i++) {
       //   this.arc(randomInt(20, 40))
       // }
-      // this.arc(randomInt(30, 60))
+      // // this.arc(randomInt(30, 60))
       // this.arc(randomInt(30, 60))
       // this.arc(randomInt(30, 60))
     }
     else {
-      this.flip()
+      if (flipCoin(0.5)) {
+        this.flip()
+      }
       // to smooth out gradual thinning
       // TODO: thin based on distance traveled?
       for (let i = 0; i < randomInt(3, 8); i++) {
@@ -142,7 +151,8 @@ class Vine {
       }
       // this.arc(randomAngle())
       // this.flip()
-      if (flipCoin(remainingSteps / (totalSteps * 2))) {
+      // if (flipCoin(remainingSteps / (totalSteps * 3))) {
+      if (flipCoin(0.5)) {
         this.flip()
       }
       for (let i = 0; i < randomInt(3, 8); i++) {
@@ -203,9 +213,11 @@ class Vine {
   }
 
   flip() {
-    // drawLeaf(this.ctx, this.current, this.center, !this.counterClockwise)
     this.ctx.lineWidth -= 0.5
     this.history.push(['flip'])
+    // if (flipCoin(0.8)) {
+      drawLeaf(this.ctx, this.current, this.center, !this.counterClockwise)
+    // }
     ;[this.center, this.counterClockwise] = changeDirection(this.current, this.center, this.counterClockwise)
     return this
   }
@@ -237,7 +249,7 @@ function turnRadius(ctx, start, center, angle, counterClockwise) {
 // returns new center -- should we instead deal with normal vectors and radiuses?
 function scaleRadius(current, center, scale, constant) {
   const radius = clamp(center.distance(current) - constant, 0)
-  console.log(radius)
+  // console.log(radius)
   const normal = center.sub(current).unit
 
   return normal.mult(radius * scale).add(current)
@@ -397,7 +409,9 @@ function flipCoin(trueProb) {
 }
 
 function drawLeaf(ctx, start, end, clockwise) {
-  let startToEnd = end.sub(start).unit.mult(end.distance(start) * 0.75)
+  let originalWidth = ctx.lineWidth
+  let startToEnd = end.sub(start).unit
+  
   console.log("HERE")
   console.log(start, end, startToEnd, end.sub(start).unit, end.distance(start))
 
@@ -408,30 +422,36 @@ function drawLeaf(ctx, start, end, clockwise) {
   console.log(Angle.radiansToDegrees(angle))
 
   // let control1 = start.add(directionControl1.mult(50))
-  let control1 = new Vec2(end.x, end.y).rotateAbout(start, angle + Angle.degreesToRadians(45))
-  let control2 = start.add(startToEnd)
+  ctx.lineWidth = 1
+  let control1 = end.sub(start).unit.mult(end.distance(start) * 0.9).rotate(Angle.degreesToRadians(50)).add(start)
+  let control2 = start.add(startToEnd.mult(end.distance(start) * 0.75))
   console.log(control1, control2)
   // drawPoint(control1.x, control1.y, ctx, 'red')
   // drawPoint(control2.x, control2.y, ctx, 'green')
-
-  // top of leafs
+  
+  // top of leaf
   ctx.moveTo(start.x, start.y)
   ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
-  ctx.fillStyle = 'green'
+  ctx.fillStyle = '#139ffd'
+
+  ctx.moveTo(start.x, start.y)
+  control1 = end.sub(start).unit.mult(end.distance(start) * 0.5).rotate(-Angle.degreesToRadians(45)).add(start)
+  ctx.bezierCurveTo(control1.x, control1.y, control1.x, control1.y, end.x, end.y)
   ctx.fill()
   ctx.stroke()
 
   // bottom of leaf
-  ctx.moveTo(start.x, start.y)
-  control1 = new Vec2(end.x, end.y).rotateAbout(start, angle + Angle.degreesToRadians(45))
+  // ctx.moveTo(start.x, start.y)
+  // control1 = new Vec2(end.x, end.y).rotateAbout(start, angle + Angle.degreesToRadians(45))
   // control1 = new Vec2(start.x + 50, start.y)
   // drawPoint(control1.x, control1.y, ctx, 'magenta')
-  ctx.beginPath()
-  ctx.moveTo(start.x, start.y)
-  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
-  ctx.fillStyle = 'red'
-  ctx.fill()
-  ctx.stroke()
+  // ctx.beginPath()
+  // ctx.moveTo(start.x, start.y)
+  // ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
+  // ctx.fillStyle = 'red'
+  // ctx.fill()
+  // ctx.stroke()
+  ctx.lineWidth = originalWidth
 }
 
 // // Define the points as {x, y} 

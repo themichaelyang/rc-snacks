@@ -15,6 +15,8 @@ window.onload = () => {
   canvas.height = rect.height * dpr 
 
   ctx.scale(dpr, dpr)
+  const cssWidth = rect.width
+  const cssHeight = rect.height
   
   const scaling = 0.75
   const steps = 10
@@ -49,26 +51,105 @@ window.onload = () => {
   //   let vine = new Vine(ctx, new Vec2(100 + 100 * i, randomInt(-50, 0)), randomInt(50, 120), randomInt(90, 120), true)
   //   vine.grow(6)
   // }
+  const allVines = []
   for (let i = 0; i < 2; i++) {
-    let vine = new Vine(ctx, new Vec2(100 + 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(90, 120), true)
-    vine.grow(6)
+    let v = new Vine(ctx, new Vec2(100 + 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(90, 120), true)
+    v.grow(6)
+    allVines.push(v)
   }
 
   for (let i = 0; i < 2; i++) {
-    let vine = new Vine(ctx, new Vec2(1000 - 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
-    vine.grow(6)
+    let v = new Vine(ctx, new Vec2(1000 - 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
+    v.grow(6)
+    allVines.push(v)
   }
 
   // ctx.lineWidth = 10
-  let vine = new Vine(ctx, new Vec2(0, 200 + randomInt(-20, 20)), randomInt(50, 90), 90, true)
-  vine.flip()
-  vine.arc(randomInt(20, 60))
-  vine.grow(8)
+  {
+    let v = new Vine(ctx, new Vec2(0, 200 + randomInt(-20, 20)), randomInt(50, 90), 90, true)
+    v.flip()
+    v.arc(randomInt(20, 60))
+    v.grow(8)
+    allVines.push(v)
+  }
 
-  vine = new Vine(ctx, new Vec2(1000, 200 + randomInt(-20, 20)), randomInt(50, 90), 180, true)
-  vine.flip()
-  vine.arc(randomInt(20, 60))
-  vine.grow(8)
+  {
+    let v = new Vine(ctx, new Vec2(1000, 200 + randomInt(-20, 20)), randomInt(50, 90), 180, true)
+    v.flip()
+    v.arc(randomInt(20, 60))
+    v.grow(8)
+    allVines.push(v)
+  }
+
+  // Recompute and normalize each vine's total path length from history to avoid drift
+  function recomputeDistance(vine) {
+    const [_, start, startRadius, startAngle, startCCW] = vine.history[0]
+    let tempCurrent = start
+    let angleDir = Angle.direction(startAngle)
+    let toCenterClockwise = angleDir.right
+    let toCenterCounterClockwise = toCenterClockwise.right.right
+    let tempCenter = startCCW ? start.add(toCenterCounterClockwise.mult(startRadius))
+                              : start.add(toCenterClockwise.mult(startRadius))
+    let tempCCW = startCCW
+    let length = 0
+    for (let i = 1; i < vine.history.length; i++) {
+      const cmd = vine.history[i]
+      const type = cmd[0]
+      if (type === 'arc') {
+        const angle = cmd[1]
+        const paramDistance = cmd[2]
+        // Prefer exact geometry stored in history for stateless fidelity
+        const snapshotR = (cmd.length >= 8 && cmd[7] != null) ? cmd[7] : tempCenter.distance(tempCurrent)
+        // snapshotCenter may be unused in recompute, but keep a single definition for parity
+        const snapshotCenter = (cmd.length >= 10 && cmd[8] != null && cmd[9] != null) ? new Vec2(cmd[8], cmd[9]) : null
+        const radFromAngle = (angle != null) ? Angle.degreesToRadians(angle) : Infinity
+        const radFromDistance = (paramDistance != null) ? ((snapshotR > 0) ? paramDistance / snapshotR : 0) : Infinity
+        const totalRadians = (cmd.length >= 7 && cmd[6] != null) ? cmd[6] : Math.min(radFromAngle, radFromDistance)
+        const arcLen = totalRadians * snapshotR
+        length += arcLen
+        tempCurrent = tempCurrent.rotateAbout(tempCenter, totalRadians, !tempCCW)
+      } else if (type === 'scale') {
+        const factor = cmd[1]
+        const constant = cmd[2] || 0
+        tempCenter = scaleRadius(tempCurrent, tempCenter, factor, constant)
+      } else if (type === 'flip') {
+        ;[tempCenter, tempCCW] = changeDirection(tempCurrent, tempCenter, tempCCW)
+      }
+    }
+    return length
+  }
+
+  for (let i = 0; i < allVines.length; i++) {
+    allVines[i].distance = recomputeDistance(allVines[i])
+  }
+  const state = { t: 0 }
+  const duration = 1500
+  const tween = new TWEEN.Tween(state).to({ t: 1 }, duration).easing(TWEEN.Easing.Linear.None).onUpdate(() => {
+    // Robust clear in device pixels: reset transform, clear, then reapply scale
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    for (let i = 0; i < allVines.length; i++) {
+      const vine = allVines[i]
+      const dist = vine.distance * state.t
+      ctx.strokeStyle = '#139ffd'
+      vine.ctx = ctx
+      vine.drawFromHistory(dist)
+    }
+  }).onComplete(() => {
+    // ensure final state drawn
+    for (let i = 0; i < allVines.length; i++) {
+      const v = allVines[i]
+      v.ctx = ctx
+      v.drawFromHistory(v.distance)
+    }
+  }).start()
+
+  function raf() {
+    TWEEN.update()
+    requestAnimationFrame(raf)
+  }
+  requestAnimationFrame(raf)
     // let vine = new Vine(ctx, new Vec2(400, 400), 100, 180, false)
     // vine.grow(1)
 }
@@ -95,6 +176,7 @@ class Vine {
     startAngle = Angle.degreesToRadians(startAngle)
     this.ctx = ctx
     this.ctx.lineWidth = startLineWidth
+    this.startLineWidth = startLineWidth
     this.current = start
     this.start = start
 
@@ -115,6 +197,7 @@ class Vine {
     this.probabilities = [0.6, 0.33]
 
     this.cumulativeArc = 0
+    this.distance = 0
     this.ctx.beginPath()
     this.flip()
     this.arc(randomInt(30, 90))
@@ -192,17 +275,40 @@ class Vine {
     return this.history[this.history.length - 1][0]
   }
 
-  arc(angle) {
-    if (this.ctx.lineWidth > 3) {
-      this.ctx.lineWidth -= 0.25
-    }
+  arc(angle, distance=null) {
     // this.ctx.lineWidth -= 0.5
     // this.cumulativeArc += angle
-    this.history.push(['arc', angle])
-    angle = Angle.degreesToRadians(angle)
+    const widthBefore = this.ctx.lineWidth
+    this.history.push(['arc', angle, distance])
+    const r = this.radius
+    const radFromAngle = (angle != null) ? Angle.degreesToRadians(angle) : Infinity
+    const radFromDistance = (distance != null) ? ((r > 0) ? distance / r : 0) : Infinity
+    const radians = Math.min(radFromAngle, radFromDistance)
+    const arcLen = radians * r
     this.ctx.beginPath()
-    this.current = turnRadius(this.ctx, this.current, this.center, angle, this.counterClockwise)
+    this.current = turnRadius(this.ctx, this.current, this.center, radians, this.counterClockwise)
     this.ctx.beginPath()
+    // accumulate total drawn path length
+    this.distance += arcLen
+    // Determine widthAfter for history; default to per-arc taper
+    const completedFullAngle = (angle == null) ? true : (radians >= radFromAngle - 1e-9)
+    let widthAfter = Math.max(3, widthBefore - 0.25)
+    // Apply shrink to context for generation if appropriate
+    if ((distance == null || completedFullAngle) && this.ctx.lineWidth > 3) {
+      this.ctx.lineWidth = widthAfter
+    }
+    // augment last history arc entry with widthBefore/widthAfter for stateless replay
+    const last = this.history[this.history.length - 1]
+    last[3] = widthBefore
+    last[4] = widthAfter
+    // also store direction (counterClockwise) at time of draw to ensure correct replay
+    last[5] = this.counterClockwise
+    // store geometry snapshot for exact stateless replay
+    last[6] = radians
+    last[7] = r
+    // store center snapshot for exact radius/center during replay
+    last[8] = this.center.x
+    last[9] = this.center.y
     return this
   }
 
@@ -218,12 +324,103 @@ class Vine {
   }
 
   flip() {
+    const widthBefore = this.ctx.lineWidth
     this.ctx.lineWidth -= 0.5
-    this.history.push(['flip'])
+    const widthAfter = this.ctx.lineWidth
+    this.history.push(['flip', widthBefore, widthAfter])
     // if (flipCoin(0.8)) {
-      drawLeaf(this.ctx, this.current, this.center, !this.counterClockwise)
+      drawLeaf(this.ctx, this.current, this.center, !this.counterClockwise, 1)
     // }
     ;[this.center, this.counterClockwise] = changeDirection(this.current, this.center, this.counterClockwise)
+    return this
+  }
+
+  // Draw up to a target path length using recorded history
+  // distance: total path length to draw along arcs; partially draws last arc if needed
+  drawFromHistory(distance) {
+    let remaining = distance
+    const [_, start, startRadius, startAngle, startCCW] = this.history[0]
+    let tempCurrent = start
+    let angleDir = Angle.direction(startAngle)
+    let toCenterClockwise = angleDir.right
+    let toCenterCounterClockwise = toCenterClockwise.right.right
+    let tempCenter = startCCW ? start.add(toCenterCounterClockwise.mult(startRadius))
+                              : start.add(toCenterClockwise.mult(startRadius))
+    let tempCCW = startCCW
+
+    const ctx = this.ctx
+    ctx.save()
+    let localWidth = this.startLineWidth
+    // do not rely on current context width; set from history per arc
+
+    for (let i = 1; i < this.history.length; i++) {
+      const cmd = this.history[i]
+      const type = cmd[0]
+      if (type === 'arc') {
+        const angle = cmd[1]
+        const paramDistance = cmd[2]
+        // Prefer exact geometry stored in history for stateless fidelity
+        const snapshotCenter = (cmd.length >= 10 && cmd[8] != null && cmd[9] != null) ? new Vec2(cmd[8], cmd[9]) : null
+        const snapshotR = (cmd.length >= 8 && cmd[7] != null) ? cmd[7] : tempCenter.distance(tempCurrent)
+        const radFromAngle = (angle != null) ? Angle.degreesToRadians(angle) : Infinity
+        const radFromDistance = (paramDistance != null) ? ((snapshotR > 0) ? paramDistance / snapshotR : 0) : Infinity
+        const totalRadians = (cmd.length >= 7 && cmd[6] != null) ? cmd[6] : Math.min(radFromAngle, radFromDistance)
+        const arcLen = totalRadians * snapshotR
+        // optional stored widths: [3]=widthBefore, [4]=widthAfter
+        const widthBefore = (cmd.length >= 4 && cmd[3] != null) ? cmd[3] : localWidth
+        const widthAfter = (cmd.length >= 5 && cmd[4] != null) ? cmd[4] : Math.max(3, widthBefore - 0.25)
+        // optional stored direction at time of arc: [5] = counterClockwise boolean
+        const arcCCW = (cmd.length >= 6) ? cmd[5] : tempCCW
+
+        // Ensure replay radius equals snapshotR: if we have an exact stored center, use it; otherwise adjust along normal
+        if (snapshotCenter) {
+          tempCenter = snapshotCenter
+        } else {
+          const normalDir = tempCenter.sub(tempCurrent).unit
+          tempCenter = tempCurrent.add(normalDir.mult(snapshotR))
+        }
+
+        if (remaining <= 0) break
+
+        if (remaining >= arcLen) {
+          ctx.lineWidth = widthBefore
+          ctx.beginPath()
+          tempCurrent = turnRadius(ctx, tempCurrent, tempCenter, totalRadians, arcCCW)
+          ctx.beginPath()
+          remaining -= arcLen
+          // carry width to next arc
+          localWidth = widthAfter
+        } else {
+          const partialRadians = (snapshotR > 0) ? remaining / snapshotR : 0
+          ctx.lineWidth = widthBefore
+          ctx.beginPath()
+          tempCurrent = turnRadius(ctx, tempCurrent, tempCenter, partialRadians, arcCCW)
+          ctx.beginPath()
+          remaining = 0
+          break
+        }
+      } else if (type === 'scale') {
+        const factor = cmd[1]
+        const constant = cmd[2] || 0
+        tempCenter = scaleRadius(tempCurrent, tempCenter, factor, constant)
+      } else if (type === 'flip') {
+        // enforce recorded widths for leaf drawing and animate leaf growth with tweened progress
+        const widthBefore = cmd[1] != null ? cmd[1] : localWidth
+        const widthAfter = cmd[2] != null ? cmd[2] : Math.max(3, widthBefore - 0.5)
+        ctx.lineWidth = widthBefore
+        // compute a local progress from global tween t if available
+        const globalTween = (typeof TWEEN !== 'undefined' && TWEEN.getAll && TWEEN.getAll().length > 0) ? TWEEN.getAll()[0] : null
+        let progress = 1
+        if (globalTween && globalTween._object && typeof globalTween._object.t === 'number') {
+          progress = globalTween._object.t
+        }
+        drawLeaf(ctx, tempCurrent, tempCenter, !tempCCW, progress)
+        ctx.lineWidth = widthAfter
+        localWidth = widthAfter
+        ;[tempCenter, tempCCW] = changeDirection(tempCurrent, tempCenter, tempCCW)
+      }
+    }
+    ctx.restore()
     return this
   }
 }
@@ -413,18 +610,16 @@ function flipCoin(trueProb) {
   return weightedSample([true, false], [trueProb, 1 - trueProb])
 }
 
-function drawLeaf(ctx, start, end, clockwise) {
+function drawLeaf(ctx, start, end, clockwise, progress=1) {
   let originalWidth = ctx.lineWidth
-  let startToEnd = end.sub(start).unit
-  
-  console.log("HERE")
-  console.log(start, end, startToEnd, end.sub(start).unit, end.distance(start))
+  let direction = end.sub(start)
+  let startToEnd = direction.unit
+  const clampedProgress = clamp(progress, 0, 1)
+  const endScaled = start.add(direction.mult(clampedProgress))
 
   // todo: should be based on rotation of the vine
   // let directionControl1 = end.sub(start).unit
-  let angle = end.angleAbout(start)
-  console.log("ANGLE")
-  console.log(Angle.radiansToDegrees(angle))
+  let angle = endScaled.angleAbout(start)
 
   let sign = 1
 
@@ -434,20 +629,19 @@ function drawLeaf(ctx, start, end, clockwise) {
 
   // let control1 = start.add(directionControl1.mult(50))
   ctx.lineWidth = 1
-  let control1 = end.sub(start).unit.mult(end.distance(start) * 0.9).rotate(sign * Angle.degreesToRadians(50)).add(start)
-  let control2 = start.add(startToEnd.mult(end.distance(start) * 0.75))
-  console.log(control1, control2)
+  let control1 = endScaled.sub(start).unit.mult(endScaled.distance(start) * 0.9).rotate(sign * Angle.degreesToRadians(50)).add(start)
+  let control2 = start.add(startToEnd.mult(endScaled.distance(start) * 0.75))
   // drawPoint(control1.x, control1.y, ctx, 'red')
   // drawPoint(control2.x, control2.y, ctx, 'green')
   
   // top of leaf
   ctx.moveTo(start.x, start.y)
-  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
+  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, endScaled.x, endScaled.y)
   ctx.fillStyle = '#139ffd'
 
   ctx.moveTo(start.x, start.y)
-  control1 = end.sub(start).unit.mult(end.distance(start) * 0.5).rotate(-sign * Angle.degreesToRadians(45)).add(start)
-  ctx.bezierCurveTo(control1.x, control1.y, control1.x, control1.y, end.x, end.y)
+  control1 = endScaled.sub(start).unit.mult(endScaled.distance(start) * 0.5).rotate(-sign * Angle.degreesToRadians(45)).add(start)
+  ctx.bezierCurveTo(control1.x, control1.y, control1.x, control1.y, endScaled.x, endScaled.y)
   ctx.fill()
   ctx.stroke()
 

@@ -52,14 +52,14 @@ window.onload = () => {
   //   vine.grow(6)
   // }
   const allVines = []
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < cssWidth / 250 / 2; i++) {
     let v = new Vine(ctx, new Vec2(100 + 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(90, 120), true)
     v.grow(6)
     allVines.push(v)
   }
 
-  for (let i = 0; i < 2; i++) {
-    let v = new Vine(ctx, new Vec2(1000 - 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
+  for (let i = 0; i < cssWidth / 250 / 2; i++) {
+    let v = new Vine(ctx, new Vec2(cssWidth - 250 * i, randomInt(-50, 0)), randomInt(40, 60), randomInt(130, 180), true)
     v.grow(6)
     allVines.push(v)
   }
@@ -74,7 +74,7 @@ window.onload = () => {
   }
 
   {
-    let v = new Vine(ctx, new Vec2(1000, 200 + randomInt(-20, 20)), randomInt(50, 90), 180, true)
+    let v = new Vine(ctx, new Vec2(cssWidth, 200 + randomInt(-20, 20)), randomInt(50, 90), 180, true)
     v.flip()
     v.arc(randomInt(20, 60))
     v.grow(8)

@@ -175,6 +175,7 @@ class Vine {
     return this
   }
 
+  // idea from Jon: growing from the starting point? alternating from start + end growth?
   grow(steps) {
     for (let i = 0; i < steps; i++) {
       this.randomOp(steps - i, steps)
@@ -425,9 +426,15 @@ function drawLeaf(ctx, start, end, clockwise) {
   console.log("ANGLE")
   console.log(Angle.radiansToDegrees(angle))
 
+  let sign = 1
+
+  if (clockwise) {
+    sign = -1
+  }
+
   // let control1 = start.add(directionControl1.mult(50))
   ctx.lineWidth = 1
-  let control1 = end.sub(start).unit.mult(end.distance(start) * 0.9).rotate(Angle.degreesToRadians(50)).add(start)
+  let control1 = end.sub(start).unit.mult(end.distance(start) * 0.9).rotate(sign * Angle.degreesToRadians(50)).add(start)
   let control2 = start.add(startToEnd.mult(end.distance(start) * 0.75))
   console.log(control1, control2)
   // drawPoint(control1.x, control1.y, ctx, 'red')
@@ -439,7 +446,7 @@ function drawLeaf(ctx, start, end, clockwise) {
   ctx.fillStyle = '#139ffd'
 
   ctx.moveTo(start.x, start.y)
-  control1 = end.sub(start).unit.mult(end.distance(start) * 0.5).rotate(-Angle.degreesToRadians(45)).add(start)
+  control1 = end.sub(start).unit.mult(end.distance(start) * 0.5).rotate(-sign * Angle.degreesToRadians(45)).add(start)
   ctx.bezierCurveTo(control1.x, control1.y, control1.x, control1.y, end.x, end.y)
   ctx.fill()
   ctx.stroke()
